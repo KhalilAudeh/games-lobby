@@ -1,5 +1,5 @@
 import "bootstrap/dist/css/bootstrap.min.css";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import { Container, Badge } from "react-bootstrap";
 import Loader from "./components/Loader";
@@ -20,42 +20,51 @@ const App = () => {
 
   // variables used for filter by logic
   const [selectedProvider, setSelectedProvider] = useState(null);
-  const [providers, setProviders] = useState([]);
 
   useEffect(() => {
-    axios
-      .get(url)
-      .then((response) => {
-        setGamesList(response.data);
-      })
-      .catch((err) => console.log(err));
-
-    // creates array from gamesList that will have only providers
-    const createdProviders = Array.from(
-      new Set(gamesList.map((game) => game.provider_title))
-    );
-    setProviders(createdProviders);
+    if (!gamesList.length) {
+      axios
+        .get(url)
+        .then((response) => {
+          setGamesList(response.data);
+        })
+        .catch((err) => console.log(err));
+    }
   }, [url, gamesList]);
 
   useEffect(() => {
-    // check on user input for search and filter live on search input
-    const filteredList = searchInput
-      ? gamesList.filter((game) => {
+    const filteredList = gamesList
+      .filter((game) => {
+        // check on user input for search and filter live on search input
+        if (searchInput) {
           return game.name
             .toLowerCase()
             .includes(searchInput.toLocaleLowerCase());
-        })
-      : gamesList;
+        }
+        return true;
+      })
+      .filter((game) => {
+        // check on what current provider chosen is active
+        if (selectedProvider) {
+          return game.provider_title === selectedProvider.value;
+        }
+        return true;
+      });
 
-    // check on what current provider chosen is active
-    const filteredByProviderGames = selectedProvider
-      ? gamesList.filter(
-          (game) => game.provider_title === selectedProvider.value
-        )
-      : filteredList;
-
-    setFilteredGames(filteredByProviderGames);
+    setFilteredGames(filteredList);
   }, [searchInput, selectedProvider, gamesList]);
+
+  // provider options for labels UI and values to use for filter by
+  const providerOptions = useMemo(() => {
+    const providers = Array.from(
+      new Set(gamesList.map((game) => game.provider_title))
+    );
+
+    return providers.map((provider) => ({
+      value: provider,
+      label: provider,
+    }));
+  }, [gamesList]);
 
   const handleInputChange = (event) => {
     setSearchInput(event.target.value);
@@ -69,12 +78,6 @@ const App = () => {
   const firstIndex = lastIndex - gamesPerPage;
 
   const currentGames = filteredGames.slice(firstIndex, lastIndex);
-
-  // provider options for labels UI and values to use for filter by
-  const providerOptions = providers.map((provider) => ({
-    value: provider,
-    label: provider,
-  }));
 
   return (
     <Container>

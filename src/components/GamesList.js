@@ -5,7 +5,7 @@ import GameCard from "./GameCard";
 const GamesList = ({ gamesList }) => {
   return (
     <Row>
-      {gamesList.length > 0 ? (
+      {gamesList.length ? (
         gamesList.map((game, index) => (
           <GameCard game={game} gameNumber={index} />
         ))
